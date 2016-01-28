@@ -1,0 +1,12 @@
+{application, erlchronos,
+ [
+  {description, "Erlang/OTP gen_server wrapper with (precise?) ticks."},
+  {vsn, git},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  %{mod, { erlchronos_app, []}},
+  {env, []}
+ ]}.
