@@ -73,7 +73,6 @@
 -define(PROCDIC_MODULE, '$ticked_gen_server.module').
 -define(PROCDIC_TICKS, '$ticked_gen_server.ticks').
 -define(GEN_SERVER_TIMEOUT_MSG, timeout).
--define(IN_RANGE(X, Y, Precision), (abs((X) - (Y)) < Precision)).
 
 %% ------------------------------------------------------------------
 %% Record Definitions
@@ -187,7 +186,7 @@ handle_cast(Request, State) ->
         -> {noreply, NewState :: term(), Timeout :: non_neg_integer()} |
            {stop, Reason :: term(), NewState :: term()}.
 handle_info(?GEN_SERVER_TIMEOUT_MSG, State) ->
-    handle_timeouts(State);
+    inject_handle_info_timeout(handle_timeouts(State));
 handle_info(Info, State) ->
     Mod = get(?PROCDIC_MODULE),
     inject_handle_info_timeout(Mod:handle_info(Info, State)).
@@ -232,7 +231,7 @@ handle_timeouts(State) ->
         -> {NewState :: term(), NewTicks :: [tick()]}.
 handle_tick_deadlines(State, [#tick{ deadline_us=DeadlineUS }=Tick | UntriggeredTicks],
                       NowUS, Mod, TriggeredTicks)
-  when ?IN_RANGE(DeadlineUS, NowUS, 1000) ->
+  when DeadlineUS =< NowUS ->
     #tick{id = Id,
           duration_us = DurationUS,
           generation = Generation}=Tick,
@@ -336,13 +335,19 @@ min_timeout_value_ms() ->
         Ticks ->
             [#tick{ deadline_us=MinDeadlineUS } | _]
                 = lists:keysort(#tick.deadline_us, Ticks),
-            max(0, MinDeadlineUS - Now) div 1000
+            trunc(round(max(0, MinDeadlineUS - Now) / 1000))
     end.
 
+-ifdef(pre18).
 -spec now_timestamp_us() -> non_neg_integer().
 now_timestamp_us() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
     (((MegaSecs * 1000000) + Secs) * 1000000) + MicroSecs.
+-else.
+-spec now_timestamp_us() -> integer().
+now_timestamp_us() ->
+    erlang:monotonic_time(micro_seconds).
+-endif.
 
 -spec split_start_options([start_option()]) -> {[{ticks, tick_start_option()}],
                                                 [start_option()]}.
