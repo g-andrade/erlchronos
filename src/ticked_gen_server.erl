@@ -86,7 +86,8 @@
           id :: term(),
           duration_ns :: pos_integer(),
           deadline_ns :: timestamp(),
-          generation :: non_neg_integer()
+          generation :: non_neg_integer(),
+          skip_missed :: boolean()
 }).
 -type tick() :: #tick{}.
 
@@ -107,8 +108,13 @@
 -type spawn_start_option() :: term().
 -export_type([spawn_start_option/0]).
 
--type tick_start_option() :: {TickId :: term(), TickDuration :: pos_integer()}.
+-type tick_start_option() ::
+    ({TickId :: term(), TickDuration :: pos_integer()} |
+     {TickId :: term(), TickDuration :: pos_integer(), TickSettings :: [tick_setting()]}).
 -export_type([tick_start_option/0]).
+
+-type tick_setting() :: skip_missed | dont_skip_missed.
+-export_type([tick_setting/0]).
 
 -ifdef(pre18).
 -type timestamp() :: non_neg_integer().
@@ -125,8 +131,8 @@
            {error, {already_started, pid()}} |
            {error, Reason :: term()}.
 start(Mod, Args, Options) ->
-    {TickOptions, GenServerOptions} = split_start_options(Options),
-    gen_server:start(?MODULE, {Mod, Args, TickOptions}, GenServerOptions).
+    {TickedGServerOptions, GenServerOptions} = split_start_options(Options),
+    gen_server:start(?MODULE, {Mod, Args, TickedGServerOptions}, GenServerOptions).
 
 -spec start(Name :: {local, atom()} | {global, atom()} | {via, atom(), term()},
             Mod :: module(), Args :: term(), Options :: [start_option()])
@@ -134,16 +140,16 @@ start(Mod, Args, Options) ->
            {error, {already_started, pid()}} |
            {error, Reason :: term()}.
 start(Name, Mod, Args, Options) ->
-    {TickOptions, GenServerOptions} = split_start_options(Options),
-    gen_server:start(Name, ?MODULE, {Mod, Args, TickOptions}, GenServerOptions).
+    {TickedGServerOptions, GenServerOptions} = split_start_options(Options),
+    gen_server:start(Name, ?MODULE, {Mod, Args, TickedGServerOptions}, GenServerOptions).
 
 -spec start_link(Mod :: module(), Args :: term(), Options :: [start_option()])
         -> {ok, pid()} |
            {error, {already_started, pid()}} |
            {error, Reason :: term()}.
 start_link(Mod, Args, Options) ->
-    {TickOptions, GenServerOptions} = split_start_options(Options),
-    gen_server:start_link(?MODULE, {Mod, Args, TickOptions}, GenServerOptions).
+    {TickedGServerOptions, GenServerOptions} = split_start_options(Options),
+    gen_server:start_link(?MODULE, {Mod, Args, TickedGServerOptions}, GenServerOptions).
 
 -spec start_link(Name :: {local, atom()} | {global, atom()} | {via, atom(), term()},
                  Mod :: module(), Args :: term(), Options :: [start_option()])
@@ -151,27 +157,36 @@ start_link(Mod, Args, Options) ->
            {error, {already_started, pid()}} |
            {error, Reason :: term()}.
 start_link(Name, Mod, Args, Options) ->
-    {TickOptions, GenServerOptions} = split_start_options(Options),
-    gen_server:start_link(Name, ?MODULE, {Mod, Args, TickOptions}, GenServerOptions).
+    {TickedGServerOptions, GenServerOptions} = split_start_options(Options),
+    gen_server:start_link(Name, ?MODULE, {Mod, Args, TickedGServerOptions}, GenServerOptions).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
--spec init({Mod :: module(), Args :: term(), TickOptions :: [{ticks, tick_start_option()}]})
+-spec init({Mod :: module(), Args :: term(), TickedGServerOptions :: [{ticks, tick_start_option()}]})
         -> {ok, State :: term(), Timeout :: non_neg_integer()} |
            {stop, Reason :: term()} | ignore.
-init({Mod, Args, TickOptions}) ->
-    NowNS = now_timestamp_ns(),
-    TickSettings = proplists:get_value(ticks, TickOptions, []),
+init({Mod, Args, TickedGServerOptions}) ->
+    RawTickOptions = proplists:get_value(ticks, TickedGServerOptions, []),
+    TickOptions = lists:map(
+                    fun ({TickId, TickDurationMS}) ->
+                        {TickId, TickDurationMS, []};
+                        ({TickId, TickDurationMS, TickSettings}) ->
+                        {TickId, TickDurationMS, TickSettings}
+                    end,
+                    RawTickOptions),
     Ticks = lists:map(
-              fun ({TickId, TickDurationMS}) ->
-                      #tick{id = TickId,
-                            duration_ns = TickDurationMS * 1000000,
-                            deadline_ns = NowNS,
-                            generation = 0}
+              fun ({TickId, TickDurationMS, TickSettings}) ->
+                  DontSkipMissed = (lists:member(dont_skip_missed, TickSettings) orelse
+                                    not lists:member(skip_missed, TickSettings)),
+                  #tick{id = TickId,
+                        duration_ns = TickDurationMS * 1000000,
+                        deadline_ns = now_timestamp_ns(),
+                        generation = 0,
+                        skip_missed = not DontSkipMissed}
               end,
-              TickSettings),
+              TickOptions),
     undefined = put(?PROCDIC_MODULE, Mod),
     undefined = put(?PROCDIC_TICKS, Ticks),
     inject_init_timeout(Mod:init(Args)).
@@ -244,10 +259,15 @@ handle_tick_deadlines(State, [#tick{ deadline_ns=DeadlineNS }=Tick | Untriggered
   when DeadlineNS =< NowNS ->
     #tick{id = Id,
           duration_ns = DurationNS,
-          generation = Generation}=Tick,
-    {noreply, NewState} = Mod:handle_tick(Id, Generation, State),
-    NewTick = Tick#tick{deadline_ns = DeadlineNS + DurationNS,
-                        generation = Generation + 1},
+          generation = Generation,
+          skip_missed = SkipMissed} = Tick,
+    GenerationsSkip = case SkipMissed of
+                        false -> 0;
+                        true  -> trunc((NowNS - DeadlineNS) / DurationNS)
+                      end,
+    {noreply, NewState} = Mod:handle_tick(Id, Generation + GenerationsSkip, State),
+    NewTick = Tick#tick{deadline_ns = DeadlineNS + ((1 + GenerationsSkip) * DurationNS),
+                        generation = Generation + GenerationsSkip + 1},
     handle_tick_deadlines(NewState, UntriggeredTicks, NowNS, Mod, [NewTick | TriggeredTicks]);
 handle_tick_deadlines(State, UntriggeredTicks, _NowNS, _Mod, TriggeredTicks) ->
     {State, TriggeredTicks ++ UntriggeredTicks}.
