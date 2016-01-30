@@ -57,6 +57,8 @@
                       Extra :: term()) ->
     {ok, NewState :: term()} | {error, Reason :: term()}.
 
+-ifndef(pre18).
+% Explicitly optional callbacks weren't supported before release 18
 -callback format_status(Opt, StatusData) -> Status when
       Opt :: 'normal' | 'terminate',
       StatusData :: [PDict | State],
@@ -65,6 +67,7 @@
       Status :: term().
 
 -optional_callbacks([format_status/2]).
+-endif.
 
 %% ------------------------------------------------------------------
 %% Macro Definitions
