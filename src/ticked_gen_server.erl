@@ -338,7 +338,7 @@ min_timeout_value_ms() ->
         Ticks ->
             [#tick{ deadline_us=MinDeadlineUS } | _]
                 = lists:keysort(#tick.deadline_us, Ticks),
-            trunc(round(max(0, MinDeadlineUS - Now) / 1000))
+            round(max(0, MinDeadlineUS - Now) / 1000)
     end.
 
 -ifdef(pre18).
