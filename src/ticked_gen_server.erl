@@ -45,7 +45,8 @@
     {noreply, NewState :: term()} |
     {stop, Reason :: term(), NewState :: term()}.
 
--callback handle_tick(TickId :: term(), TickGeneration :: non_neg_integer(), State :: term()) ->
+-callback handle_tick(TickId :: term(), TickGeneration :: non_neg_integer(),
+                      State :: term()) ->
     {noreply, NewState :: term()}.
 
 -callback terminate(Reason :: (normal | shutdown | {shutdown, term()} |
@@ -83,8 +84,8 @@
 
 -record(tick, {
           id :: term(),
-          duration_us :: pos_integer(),
-          deadline_us :: non_neg_integer(),
+          duration_ns :: pos_integer(),
+          deadline_ns :: timestamp(),
           generation :: non_neg_integer()
 }).
 -type tick() :: #tick{}.
@@ -108,6 +109,12 @@
 
 -type tick_start_option() :: {TickId :: term(), TickDuration :: pos_integer()}.
 -export_type([tick_start_option/0]).
+
+-ifdef(pre18).
+-type timestamp() :: non_neg_integer().
+-else.
+-type timestamp() :: integer().
+-endif.
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -155,13 +162,13 @@ start_link(Name, Mod, Args, Options) ->
         -> {ok, State :: term(), Timeout :: non_neg_integer()} |
            {stop, Reason :: term()} | ignore.
 init({Mod, Args, TickOptions}) ->
-    NowUS = now_timestamp_us(),
+    NowNS = now_timestamp_ns(),
     TickSettings = proplists:get_value(ticks, TickOptions, []),
     Ticks = lists:map(
               fun ({TickId, TickDurationMS}) ->
                       #tick{id = TickId,
-                            duration_us = TickDurationMS * 1000,
-                            deadline_us = NowUS,
+                            duration_ns = TickDurationMS * 1000000,
+                            deadline_ns = NowNS,
                             generation = 0}
               end,
               TickSettings),
@@ -220,29 +227,29 @@ format_status(Opt, StatusData) ->
 %% ------------------------------------------------------------------
 -spec handle_timeouts(State :: term()) -> {noreply, NewState :: term()}.
 handle_timeouts(State) ->
-    NowUS = now_timestamp_us(),
+    NowNS = now_timestamp_ns(),
     Mod = get(?PROCDIC_MODULE),
     Ticks = get(?PROCDIC_TICKS),
-    SortedTicks = lists:keysort(#tick.deadline_us, Ticks),
-    {NewState, NewTicks} = handle_tick_deadlines(State, SortedTicks, NowUS, Mod, []),
+    SortedTicks = lists:keysort(#tick.deadline_ns, Ticks),
+    {NewState, NewTicks} = handle_tick_deadlines(State, SortedTicks, NowNS, Mod, []),
     _ = put(?PROCDIC_TICKS, NewTicks),
     {noreply, NewState}.
 
 
--spec handle_tick_deadlines(State :: term(), UntriggeredTicks :: [tick()], NowUS :: non_neg_integer(),
+-spec handle_tick_deadlines(State :: term(), UntriggeredTicks :: [tick()], NowNS :: timestamp(),
                             Mod :: module(), TriggeredTicks :: [tick()])
         -> {NewState :: term(), NewTicks :: [tick()]}.
-handle_tick_deadlines(State, [#tick{ deadline_us=DeadlineUS }=Tick | UntriggeredTicks],
-                      NowUS, Mod, TriggeredTicks)
-  when DeadlineUS =< NowUS ->
+handle_tick_deadlines(State, [#tick{ deadline_ns=DeadlineNS }=Tick | UntriggeredTicks],
+                      NowNS, Mod, TriggeredTicks)
+  when DeadlineNS =< NowNS ->
     #tick{id = Id,
-          duration_us = DurationUS,
+          duration_ns = DurationNS,
           generation = Generation}=Tick,
     {noreply, NewState} = Mod:handle_tick(Id, Generation, State),
-    NewTick = Tick#tick{deadline_us = DeadlineUS + DurationUS,
+    NewTick = Tick#tick{deadline_ns = DeadlineNS + DurationNS,
                         generation = Generation + 1},
-    handle_tick_deadlines(NewState, UntriggeredTicks, NowUS, Mod, [NewTick | TriggeredTicks]);
-handle_tick_deadlines(State, UntriggeredTicks, _NowUS, _Mod, TriggeredTicks) ->
+    handle_tick_deadlines(NewState, UntriggeredTicks, NowNS, Mod, [NewTick | TriggeredTicks]);
+handle_tick_deadlines(State, UntriggeredTicks, _NowNS, _Mod, TriggeredTicks) ->
     {State, TriggeredTicks ++ UntriggeredTicks}.
 
 -spec inject_init_timeout({ok, State :: term()} |
@@ -332,24 +339,24 @@ inject_and_maybe_trigger_timeouts(State) ->
 
 -spec min_timeout_value_ms() -> non_neg_integer() | none.
 min_timeout_value_ms() ->
-    Now = now_timestamp_us(),
+    NowNS = now_timestamp_ns(),
     case get(?PROCDIC_TICKS) of
         [] -> none;
         Ticks ->
-            [#tick{ deadline_us=MinDeadlineUS } | _]
-                = lists:keysort(#tick.deadline_us, Ticks),
-            round(max(0, MinDeadlineUS - Now) / 1000)
+            [#tick{ deadline_ns=MinDeadlineNS } | _]
+                = lists:keysort(#tick.deadline_ns, Ticks),
+            round(max(0, MinDeadlineNS - NowNS) / 1000000)
     end.
 
 -ifdef(pre18).
--spec now_timestamp_us() -> non_neg_integer().
-now_timestamp_us() ->
+-spec now_timestamp_ns() -> timestamp().
+now_timestamp_ns() ->
     {MegaSecs, Secs, MicroSecs} = os:timestamp(),
-    (((MegaSecs * 1000000) + Secs) * 1000000) + MicroSecs.
+    ((((MegaSecs * 1000000) + Secs) * 1000000) + MicroSecs) * 1000.
 -else.
--spec now_timestamp_us() -> integer().
-now_timestamp_us() ->
-    erlang:monotonic_time(micro_seconds).
+-spec now_timestamp_ns() -> timestamp().
+now_timestamp_ns() ->
+    erlang:monotonic_time(nano_seconds).
 -endif.
 
 -spec split_start_options([start_option()]) -> {[{ticks, tick_start_option()}],
