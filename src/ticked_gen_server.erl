@@ -1,5 +1,6 @@
 -module(ticked_gen_server).
 -behaviour(gen_server).
+-author('Guilherme Andrade <erlchronos(at)gandrade(dot)net>').
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -32,10 +33,14 @@
 %% ticked_gen_server Behaviour Callbacks
 %% ------------------------------------------------------------------
 
+%% Like gen_server's <a href="http://erlang.org/doc/man/gen_server.html#Module:init-1">Module:init/1</a>
+%% callback, excluding support for timeout values on return.
 -callback init(Args :: term()) ->
     {ok, State :: term()} |
     {stop, Reason :: term()} | ignore.
 
+%% Like gen_server's <a href="http://erlang.org/doc/man/gen_server.html#Module:handle_call-3">Module:handle_call/3</a>
+%% callback, excluding support for timeout values on return.
 -callback handle_call(Request :: term(), From :: {pid(), Tag :: term()},
                       State :: term()) ->
     {reply, Reply :: term(), NewState :: term()} |
@@ -43,10 +48,14 @@
     {stop, Reason :: term(), Reply :: term(), NewState :: term()} |
     {stop, Reason :: term(), NewState :: term()}.
 
+%% Like gen_server's <a href="http://erlang.org/doc/man/gen_server.html#Module:handle_cast-2">Module:handle_cast/2</a>
+%% callback, excluding support for timeout values on return.
 -callback handle_cast(Request :: term(), State :: term()) ->
     {noreply, NewState :: term()} |
     {stop, Reason :: term(), NewState :: term()}.
 
+%% Like gen_server's <a href="http://erlang.org/doc/man/gen_server.html#Module:handle_info-2">Module:handle_info/2</a>
+%% callback, excluding support for timeout values on return.
 -callback handle_info(Info :: term(), State :: term()) ->
     {noreply, NewState :: term()} |
     {stop, Reason :: term(), NewState :: term()}.
@@ -55,15 +64,21 @@
                       State :: term()) ->
     {noreply, NewState :: term()}.
 
+%% Like gen_server's <a href="http://erlang.org/doc/man/gen_server.html#Module:terminate-2">Module:terminate/2</a>
+%% callback.
 -callback terminate(Reason :: (normal | shutdown | {shutdown, term()} |
                                term()),
                     State :: term()) ->
     term().
 
+%% Like gen_server's <a href="http://erlang.org/doc/man/gen_server.html#Module:code_change-3">Module:code_change/3</a>
+%% callback.
 -callback code_change(OldVsn :: (term() | {down, term()}), State :: term(),
                       Extra :: term()) ->
     {ok, NewState :: term()} | {error, Reason :: term()}.
 
+%% Like gen_server's <a href="http://erlang.org/doc/man/gen_server.html#Module:format_status-2">Module:format_status/2</a>
+%% callback.
 -ifndef(pre18).
 % Explicitly optional callbacks weren't supported before release 18
 -callback format_status(Opt, StatusData) -> Status when

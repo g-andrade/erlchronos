@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>erlchronos</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<h1>erlchronos</h1>
+<p>Copyright © 2015 Guilherme Andrade</p>
+<p><b>Version:</b> 1.0.0</p>
+<p><b>Authors:</b> Guilherme Andrade (<a href="mailto:erlchronos(at)gandrade(dot)net"><tt>erlchronos(at)gandrade(dot)net</tt></a>).</p>
+<p><code>erlchronos</code>: Erlang/OTP gen_server wrapper with ticks</p>
+
+<hr>
+
+<h3><a name="What_is_it?">What is it?</a></h3><p>
+<code>erlchronos</code> provides a <a href="http://erlang.org/doc/man/gen_server.html"><code>gen_server</code></a> wrapper, <code>ticked_gen_server</code>,
+that allows one to more easily manage triggering and dealing with ticks at regular intervals by specifying a new callback, <code>handle_tick/3</code>.</p>
+
+<p>It also does away with the usual <a href="http://www.erlang.org/doc/man/erlang.html#send_after-3"><code>erlang:send_after/3</code></a>,
+<a href="http://erlang.org/doc/man/timer.html#send_interval-2"><code>timer:send_interval/2</code></a>, etc. approaches, instead relying
+on two key mechanisms for tick enforcement:
+* <code>gen_server</code>'s support for specifying timeout values on callbacks - which takes care of idle-inbox periods;
+* An active verification of triggering conditions on key events (inits, calls, casts and infos) - which takes care of busier periods.</p>
+
+<h3><a name="Why?">Why?</a></h3><p>
+The traditional approach of having a message sent to a <code>gen_server</code>'s inbox at regular intervals isn't always
+the more appropriate, and might misbehave significantly every time the system is subjected to message bursts (among other factors), even when actively accounting for drift, due to the strictly-ordered nature of inbox consumption.</p>
+
+<p>An alternative would be to change the <code>receive</code> logic itself and pattern-match against timer / higher-priority messages, but this would quickly degrade performance on flooded inboxes and create a degeneration feedback loop.</p>
+
+<p>This compromise solution tries not to fiddle too much with, nor reinvent the existing building blocks.</p>
+
+<h3><a name="Pros">Pros</a></h3><p>
+* Ticks should be more precise, save for enormously flooded inboxes (whose processes never behave properly, in any case;)
+* Ticking logic is abstracted away.</p>
+
+<h3><a name="Cons">Cons</a></h3><p>
+* Slight execution overhead;
+* Losing the ability of specify timeouts on <code>init</code> / <code>handle_call</code> / <code>handle_cast</code> / <code>handle_info</code> return values;
+* Losing the ability of receiving messages (on <code>handle_info</code>) made only of the 'timeout' atom.</p>
+
+<h3><a name="How_do_I_use_it?">How do I use it?</a></h3>
+* Specify ticks (in milliseconds) through a new <code>start</code>/<code>start_link</code> option:
+<pre lang="erlang">
+ticked_gen_server:start(?MODULE, [], [{ticks, [{"tick identifier", 100}]}]).
+</pre>
+* Implement the <code>ticked_gen_server</code> behaviour, which includes one extra callback:
+<pre lang="erlang">
+-spec handle_tick(TickId :: term(), TickGeneration :: non_neg_integer(), State :: term())
+      -&gt; {noreply, NewState :: term()}.
+handle_tick(TickId, TickGeneration, State) -&gt;
+   % Tick!
+   {noreply, State};
+</pre>
+
+<p>Basic example under examples/.</p>
+
+<h3><a name="Which_problems_doesn't_it_solve?">Which problems doesn't it solve?</a></h3><p>
+* When a gen_server receives events whose handling time equals to a big enough fraction of the tick duration, it risks provoking unacceptable jitter;
+* When a gen_server's exection is blocked, incoming ticks risk being triggered in a burst fashion later on, but ignoring them is easy enough to do if such is a requirement.</p>
+
+<h3><a name="Future_plans">Future plans</a></h3>
+* Considering the possibility of having some sort of 'event classifier' callback which, through pattern matching, would allow <code>ticked_gen_server</code> to gain some insight into predicted execution times and, based on this knowledge, preemptively sacrifice execution capacity (by sleeping) and trade it for a lower likelihood of jitter;
+* Wrap <code>gen_fsm</code> / <code>gen_event</code> in a similar fashion.
+
+<hr>
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc, Jan 31 2016, 22:31:06.</i></p>
+</body>
+</html>

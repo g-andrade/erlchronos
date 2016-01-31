@@ -9,18 +9,17 @@ __Version:__ 1.0.0
 __Authors:__ Guilherme Andrade ([`erlchronos(at)gandrade(dot)net`](mailto:erlchronos(at)gandrade(dot)net)).
 
 `erlchronos`: Erlang/OTP gen_server wrapper with ticks
-
 ---------
 
 
 ### <a name="What_is_it?">What is it?</a> ###
 
 
-`erlchronos` provides a [`gen_server`](http://erlang.org/doc/man/gen_server.html) wrapper, `ticked_gen_server`,
+`erlchronos` provides a [`gen_server`](http://erlang.org/doc/man/gen_server.md) wrapper, `ticked_gen_server`,
 that allows one to more easily manage triggering and dealing with ticks at regular intervals by specifying a new callback, `handle_tick/3`.
 
 It also does away with the usual [`erlang:send_after/3`](http://www.erlang.org/doc/man/erlang.html#send_after-3),
-[`timer:send_interval/2`](http://erlang.org/doc/man/timer.html#send_interval-2), etc. approaches, instead relying
+[`timer:send_interval/2`](http://erlang.org/doc/man/timer.md#send_interval-2), etc. approaches, instead relying
 on two key mechanisms for tick enforcement:
 * `gen_server`'s support for specifying timeout values on callbacks - which takes care of idle-inbox periods;
 * An active verification of triggering conditions on key events (inits, calls, casts and infos) - which takes care of busier periods.
@@ -94,5 +93,5 @@ Basic example under examples/.
 
 
 <table width="100%" border="0" summary="list of modules">
-<tr><td><a href="https://github.com/g-andrade/erlchronos/blob/master/doc/ticked_gen_server.md" class="module">ticked_gen_server</a></td></tr></table>
+<tr><td><a href="ticked_gen_server.md" class="module">ticked_gen_server</a></td></tr></table>
 
