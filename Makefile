@@ -13,8 +13,8 @@ deps:
 compile:
 	@$(REBAR) compile
 
-#test: compile
-#	@ERL_AFLAGS="-config test/erlchronos_tests.app.config" $(REBAR) eunit skip_deps=true
+test: compile
+	@ERL_AFLAGS="-config test/erlchronos_tests.app.config" $(REBAR) eunit skip_deps=true
 
 clean:
 	@$(REBAR) clean
