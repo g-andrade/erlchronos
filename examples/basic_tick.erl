@@ -1,4 +1,4 @@
--module(fraco).
+-module(basic_tick).
 -behaviour(ticked_gen_server).
 
 -export([start/0]).
