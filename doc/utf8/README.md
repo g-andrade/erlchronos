@@ -93,5 +93,6 @@ Basic example under examples/.
 
 
 <table width="100%" border="0" summary="list of modules">
+<tr><td><a href="erlchronos.md" class="module">erlchronos</a></td></tr>
 <tr><td><a href="ticked_gen_server.md" class="module">ticked_gen_server</a></td></tr></table>
 

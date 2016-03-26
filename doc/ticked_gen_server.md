@@ -30,6 +30,18 @@ debug_start_option() = (trace | log | statistics | {log_to_file, FileName::strin
 
 
 
+### <a name="type-nanoseconds_clock_source">nanoseconds_clock_source()</a> ###
+
+
+
+<pre><code>
+nanoseconds_clock_source() = {Module::module(), Function::atom()}
+</code></pre>
+
+
+
+
+
 ### <a name="type-spawn_start_option">spawn_start_option()</a> ###
 
 
@@ -47,7 +59,7 @@ spawn_start_option() = term()
 
 
 <pre><code>
-start_option() = ({debug, [<a href="#type-debug_start_option">debug_start_option()</a>]} | {timeout, non_neg_integer()} | {spawn_opt, [<a href="#type-spawn_start_option">spawn_start_option()</a>]} | {ticks, [<a href="#type-tick_id">tick_id()</a>]})
+start_option() = ({debug, [<a href="#type-debug_start_option">debug_start_option()</a>]} | {timeout, non_neg_integer()} | {spawn_opt, [<a href="#type-spawn_start_option">spawn_start_option()</a>]} | {ticks, [<a href="#type-tick_id">tick_id()</a>]} | {nanoseconds_clock_source, <a href="#type-nanoseconds_clock_source">nanoseconds_clock_source()</a>})
 </code></pre>
 
 
@@ -146,7 +158,7 @@ handle_info(Info::'?GEN_SERVER_TIMEOUT_MSG' | term(), State::term()) -&gt; {nore
 
 
 <pre><code>
-init(X1::{Mod::module(), Args::term(), TickOptions::[{ticks, [<a href="#type-tick_id">tick_id()</a>]}]}) -&gt; {ok, State::term(), Timeout::non_neg_integer()} | {stop, Reason::term()} | ignore
+init(X1::{Mod::module(), Args::term(), TickOptions::[{ticks, [<a href="#type-tick_id">tick_id()</a>]} | {nanoseconds_clock_source, <a href="#type-nanoseconds_clock_source">nanoseconds_clock_source()</a>}]}) -&gt; {ok, State::term(), Timeout::non_neg_integer()} | {stop, Reason::term()} | ignore
 </code></pre>
 
 <br></br>

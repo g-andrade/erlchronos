@@ -101,7 +101,9 @@
 
 -define(PROCDIC_MODULE, '$ticked_gen_server.module').
 -define(PROCDIC_TICKS, '$ticked_gen_server.ticks').
+-define(PROCDIC_CLOCK_SOURCE, '$ticked_gen_server.clock_source').
 -define(GEN_SERVER_TIMEOUT_MSG, timeout).
+-define(DEFAULT_CLOCK_SOURCE, {erlchronos, now_timestamp_ns}).
 
 %% ------------------------------------------------------------------
 %% Record Definitions
@@ -109,9 +111,9 @@
 
 -record(tick, {
           id :: term(),
-          deadline_ns :: timestamp(),
+          deadline_ns :: erlchronos:timestamp(),
           generation :: non_neg_integer(),
-          prev_now_ns :: timestamp()
+          prev_now_ns :: erlchronos:timestamp()
 }).
 -type tick() :: #tick{}.
 
@@ -122,7 +124,8 @@
 -type start_option() :: ({debug, [debug_start_option()]} |
                          {timeout, non_neg_integer()} |
                          {spawn_opt, [spawn_start_option()]} |
-                         {ticks, [tick_id()]}).
+                         {ticks, [tick_id()]} |
+                         {nanoseconds_clock_source, nanoseconds_clock_source()}).
 -export_type([start_option/0]).
 
 -type debug_start_option() :: (trace | log | statistics | {log_to_file, FileName :: string()} |
@@ -135,11 +138,9 @@
 -type tick_id() :: term().
 -export_type([tick_id/0]).
 
--ifdef(pre18).
--type timestamp() :: non_neg_integer().
--else.
--type timestamp() :: integer().
--endif.
+%% 0-arity function that returns an integer nanoseconds timestamp
+-type nanoseconds_clock_source() :: {Module :: module(), Function :: atom()}.
+-export_type([nanoseconds_clock_source/0]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -183,12 +184,14 @@ start_link(Name, Mod, Args, Options) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
--spec init({Mod :: module(), Args :: term(), TickOptions :: [{ticks, [tick_id()]}]})
+-spec init({Mod :: module(), Args :: term(),
+            TickOptions :: [{ticks, [tick_id()]} | {nanoseconds_clock_source, nanoseconds_clock_source()}]})
         -> {ok, State :: term(), Timeout :: non_neg_integer()} |
            {stop, Reason :: term()} | ignore.
 init({Mod, Args, TickOptions}) ->
-    NowNS = now_timestamp_ns(),
     TickIds = proplists:get_value(ticks, TickOptions, []),
+    ClockSource = proplists:get_value(nanoseconds_clock_source, TickOptions, ?DEFAULT_CLOCK_SOURCE),
+    NowNS = now_timestamp_ns(ClockSource),
     Ticks = lists:map(
               fun (TickId) ->
                       #tick{id = TickId,
@@ -199,6 +202,7 @@ init({Mod, Args, TickOptions}) ->
               TickIds),
     undefined = put(?PROCDIC_MODULE, Mod),
     undefined = put(?PROCDIC_TICKS, Ticks),
+    undefined = put(?PROCDIC_CLOCK_SOURCE, ClockSource),
     inject_init_timeout(Mod:init(Args)).
 
 -spec handle_call(Request :: term(), From :: {pid(), Tag :: term()}, State :: term())
@@ -261,7 +265,7 @@ handle_timeouts(State) ->
     {noreply, NewState}.
 
 
--spec handle_tick_deadlines(State :: term(), UntriggeredTicks :: [tick()], NowNS :: timestamp(),
+-spec handle_tick_deadlines(State :: term(), UntriggeredTicks :: [tick()], NowNS :: erlchronos:timestamp(),
                             Mod :: module(), TriggeredTicks :: [tick()])
         -> {NewState :: term(), NewTicks :: [tick()]}.
 handle_tick_deadlines(State, [#tick{ deadline_ns=DeadlineNS }=Tick | UntriggeredTicks],
@@ -379,18 +383,16 @@ min_timeout_value_ms() ->
             round(max(0, MinDeadlineNS - NowNS) / 1000000)
     end.
 
--ifdef(pre18).
--spec now_timestamp_ns() -> timestamp().
+-spec now_timestamp_ns() -> erlchronos:timestamp().
 now_timestamp_ns() ->
-    {MegaSecs, Secs, MicroSecs} = os:timestamp(),
-    ((((MegaSecs * 1000000) + Secs) * 1000000) + MicroSecs) * 1000.
--else.
--spec now_timestamp_ns() -> timestamp().
-now_timestamp_ns() ->
-    erlang:monotonic_time(nano_seconds).
--endif.
+  now_timestamp_ns(get(?PROCDIC_CLOCK_SOURCE)).
 
--spec split_start_options([start_option()]) -> {[{ticks, [tick_id()]}],
+-spec now_timestamp_ns(nanoseconds_clock_source()) -> erlchronos:timestamp().
+now_timestamp_ns({Module, Function}) ->
+  Module:Function().
+
+-spec split_start_options([start_option()]) -> {[{ticks, [tick_id()]} |
+                                                 {nanoseconds_clock_source, nanoseconds_clock_source()}],
                                                 [start_option()]}.
 split_start_options(StartOptions) ->
     lists:partition(fun ({ticks, _Ticks}) -> true;

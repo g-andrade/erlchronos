@@ -94,5 +94,6 @@ Basic example under examples/.
 
 
 <table width="100%" border="0" summary="list of modules">
+<tr><td><a href="https://github.com/g-andrade/erlchronos/blob/master/doc/erlchronos.html" class="module">erlchronos</a></td></tr>
 <tr><td><a href="https://github.com/g-andrade/erlchronos/blob/master/doc/ticked_gen_server.html" class="module">ticked_gen_server</a></td></tr></table>
 
