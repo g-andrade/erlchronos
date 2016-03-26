@@ -396,6 +396,7 @@ now_timestamp_ns({Module, Function}) ->
                                                 [start_option()]}.
 split_start_options(StartOptions) ->
     lists:partition(fun ({ticks, _Ticks}) -> true;
+                        ({nanoseconds_clock_source, _MF}) -> true;
                         (_) -> false
                     end,
                     StartOptions).
