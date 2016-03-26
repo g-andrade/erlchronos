@@ -69,7 +69,8 @@ ticked_gen_server:start(?MODULE, [], [{ticks, ["tick identifier"]}]).
 ```erlang
 
 % TickDuration in milliseconds
--spec tick_duration(TickId :: term(), State :: term()) -> {TickDuration :: pos_integer(), NewState :: term()}.
+-spec tick_duration(TickId :: term(), State :: term())
+        -> {TickDuration :: pos_integer(), NewState :: term()}.
 tick_duration("tick identifier", State) ->
     {100, State}.
 
