@@ -12,7 +12,7 @@
          terminate/2,
          code_change/3]).
 
--define(TICK_DURATION, 50). % in milliseconds
+-define(SIMPLE_TICK_DURATION, 50). % in milliseconds
 
 -record(state, {
          }).
@@ -23,12 +23,17 @@ start_link() ->
 start() ->
     ticked_gen_server:start(?MODULE, [], [{ticks, ["a simple tick"]}]).
 
+start_with_custom_clock({_Module, _Function} = NanoSecondsClockSource) ->
+    ticked_gen_server:start(?MODULE, [],
+                            [{ticks, ["a simple tick"]},
+                             {nanoseconds_clock_source, NanoSecondsClockSource}]).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 init([]) ->
     {ok, #state{}}.
 
 tick_duration("a simple tick", State) ->
-    {?TICK_DURATION, State}.
+    {?SIMPLE_TICK_DURATION, State}.
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.

@@ -17,7 +17,8 @@ __Authors:__ Guilherme Andrade ([`erlchronos(at)gandrade(dot)net`](mailto:erlchr
 
 
 `erlchronos` provides a [`gen_server`](http://erlang.org/doc/man/gen_server.html) wrapper, `ticked_gen_server`,
-that allows one to more easily manage triggering and dealing with ticks at regular intervals by specifying a new callback, `handle_tick/3`.
+that allows one to more easily manage triggering and dealing with ticks at regular intervals by specifying two new callbacks,
+`tick_duration/2` and `handle_tick/4`.
 
 It also does away with the usual [`erlang:send_after/3`](http://www.erlang.org/doc/man/erlang.html#send_after-3),
 [`timer:send_interval/2`](http://erlang.org/doc/man/timer.html#send_interval-2), etc. approaches, instead relying
@@ -41,6 +42,7 @@ This compromise solution tries not to fiddle too much with, nor reinvent the exi
 
 
 * Ticks should be more precise, save for enormously flooded inboxes (whose processes never behave properly, in any case;)
+* For overload scenarios, the `tick_duration/2` callback can be used to easily lower tick rate;
 * Ticking logic is abstracted away.
 
 
@@ -54,21 +56,27 @@ This compromise solution tries not to fiddle too much with, nor reinvent the exi
 
 ### <a name="How_do_I_use_it?">How do I use it?</a> ###
 
-* Specify ticks (in milliseconds) through a new `start`/`start_link` option:
+* Declare ticks through a new `start`/`start_link` option:
 
 ```erlang
 
-ticked_gen_server:start(?MODULE, [], [{ticks, [{"tick identifier", 100}]}]).
+ticked_gen_server:start(?MODULE, [], [{ticks, ["tick identifier"]}]).
 
 ```
 
-* Implement the `ticked_gen_server` behaviour, which includes one extra callback:
+* Implement the `ticked_gen_server` behaviour, which includes two extra callbacks:
 
 ```erlang
 
--spec handle_tick(TickId :: term(), TickGeneration :: non_neg_integer(), State :: term())
+% TickDuration in milliseconds
+-spec tick_duration(TickId :: term(), State :: term()) -> {TickDuration :: pos_integer(), NewState :: term()}.
+tick_duration("tick identifier", State) ->
+    {100, State}.
+
+-spec handle_tick(TickId :: term(), TickGeneration :: non_neg_integer(),
+                  ActualTickDuration :: non_neg_integer(), State :: term())
       -> {noreply, NewState :: term()}.
-handle_tick(TickId, TickGeneration, State) ->
+handle_tick(TickId, TickGeneration, ActualTickDuration, State) ->
    % Tick!
    {noreply, State};
 
