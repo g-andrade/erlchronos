@@ -1,6 +1,6 @@
 @author Guilherme Andrade <erlchronos(at)gandrade(dot)net>
-@copyright 2015 Guilherme Andrade
-@version 1.0.0
+@copyright 2016 Guilherme Andrade
+@version 2.0.0
 @title erlchronos
 @doc `erlchronos': Erlang/OTP gen_server wrapper with ticks
 

@@ -2,9 +2,9 @@
 
 # erlchronos #
 
-Copyright (c) 2015 Guilherme Andrade
+Copyright (c) 2016 Guilherme Andrade
 
-__Version:__ 1.0.0
+__Version:__ 2.0.0
 
 __Authors:__ Guilherme Andrade ([`erlchronos(at)gandrade(dot)net`](mailto:erlchronos(at)gandrade(dot)net)).
 

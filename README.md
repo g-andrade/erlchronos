@@ -2,9 +2,9 @@
 
 # erlchronos #
 
-Copyright (c) 2015 Guilherme Andrade
+Copyright (c) 2016 Guilherme Andrade
 
-__Version:__ 1.0.0
+__Version:__ 2.0.0
 
 __Authors:__ Guilherme Andrade ([`erlchronos(at)gandrade(dot)net`](mailto:erlchronos(at)gandrade(dot)net)).
 
@@ -94,5 +94,5 @@ Basic example under examples/.
 
 
 <table width="100%" border="0" summary="list of modules">
-<tr><td><a href="https://github.com/g-andrade/erlchronos/blob/master/doc/ticked_gen_server.md" class="module">ticked_gen_server</a></td></tr></table>
+<tr><td><a href="https://github.com/g-andrade/erlchronos/blob/master/doc/ticked_gen_server.html" class="module">ticked_gen_server</a></td></tr></table>
 

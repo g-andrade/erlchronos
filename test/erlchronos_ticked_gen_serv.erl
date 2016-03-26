@@ -1,12 +1,13 @@
 -module(erlchronos_ticked_gen_serv).
 -behaviour(ticked_gen_server).
 
--export([start_link/2]).
+-export([start_link/3]).
 -export([init/1,
+         tick_duration/2,
          handle_call/3,
          handle_cast/2,
          handle_info/2,
-         handle_tick/3,
+         handle_tick/4,
          terminate/2,
          code_change/3]).
 
@@ -16,17 +17,27 @@
           deadline :: pos_integer(),
           call_history = [] :: list(term()),
           cast_history = [] :: list(term()),
-          info_history = [] :: list(term())
+          info_history = [] :: list(term()),
+          scheduled_tick_durations = dict:new() :: dict:dict(term(), pos_integer())
          }).
 
--spec start_link(Options :: [ticked_gen_server:start_option()], TTL :: pos_integer())
+-spec start_link(Options :: [ticked_gen_server:start_option()],
+                 Ticks :: [{TickId :: term(), TickDuration :: pos_integer()}],
+                 TTL :: pos_integer())
         -> {ok, pid()} | {error, {already_started, pid()}} | {error, term()}.
-start_link(Options, TTL) ->
-    ticked_gen_server:start_link(?MODULE, [TTL], Options).
+start_link(Options, Ticks, TTL) ->
+    ticked_gen_server:start_link(?MODULE, {Ticks, TTL}, Options).
 
--spec init([TTL :: pos_integer()]) -> {ok, #state{}}.
-init([TTL]) ->
-    {ok, #state{deadline = timestamp_ms() + TTL}}.
+-spec init({Ticks :: [{TickId :: term(), TickDuration :: pos_integer()}], TTL :: pos_integer()}) -> {ok, #state{}}.
+init({Ticks, TTL}) ->
+    {ok, #state{deadline = timestamp_ms() + TTL,
+                scheduled_tick_durations = dict:from_list(Ticks)}}.
+
+-spec tick_duration(TickId :: term(), State :: #state{})
+        -> {TickDuration :: non_neg_integer(), NewState :: #state{}}.
+tick_duration(TickId, #state{ scheduled_tick_durations=TickDurations }=State) ->
+    TickDuration = dict:fetch(TickId, TickDurations),
+    {TickDuration, State}.
 
 -spec handle_call(term(), term(), #state{}) -> {reply, term(), #state{}} | {noreply, #state{}}.
 handle_call(get_counters, _From, #state{ tick_counters=Counters }=State) ->
@@ -51,8 +62,8 @@ handle_cast(Msg, State) ->
 handle_info(Info, State) ->
     {noreply, State#state{ info_history=[Info | State#state.info_history] }}.
 
--spec handle_tick(term(), non_neg_integer(), #state{}) -> {noreply, #state{}}.
-handle_tick(TickId, _TickGeneration, #state{ deadline=Deadline }=State) ->
+-spec handle_tick(term(), non_neg_integer(), non_neg_integer(), #state{}) -> {noreply, #state{}}.
+handle_tick(TickId, _TickGeneration, _TickDuration, #state{ deadline=Deadline }=State) ->
     NowMS = timestamp_ms(),
     case NowMS >= Deadline of
         false ->

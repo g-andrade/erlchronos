@@ -39,6 +39,9 @@
     {ok, State :: term()} |
     {stop, Reason :: term()} | ignore.
 
+%% Get current tick duration for next scheduling
+-callback tick_duration(TickId :: term(), State :: term()) -> {TickDuration :: pos_integer(), NewState :: term()}.
+
 %% Like gen_server's <a href="http://erlang.org/doc/man/gen_server.html#Module:handle_call-3">Module:handle_call/3</a>
 %% callback, excluding support for timeout values on return.
 -callback handle_call(Request :: term(), From :: {pid(), Tag :: term()},
@@ -60,8 +63,9 @@
     {noreply, NewState :: term()} |
     {stop, Reason :: term(), NewState :: term()}.
 
+%% Handle a tick
 -callback handle_tick(TickId :: term(), TickGeneration :: non_neg_integer(),
-                      State :: term()) ->
+                      ActualTickDuration :: non_neg_integer(), State :: term()) ->
     {noreply, NewState :: term()}.
 
 %% Like gen_server's <a href="http://erlang.org/doc/man/gen_server.html#Module:terminate-2">Module:terminate/2</a>
@@ -105,9 +109,9 @@
 
 -record(tick, {
           id :: term(),
-          duration_ns :: pos_integer(),
           deadline_ns :: timestamp(),
-          generation :: non_neg_integer()
+          generation :: non_neg_integer(),
+          prev_now_ns :: timestamp()
 }).
 -type tick() :: #tick{}.
 
@@ -118,7 +122,7 @@
 -type start_option() :: ({debug, [debug_start_option()]} |
                          {timeout, non_neg_integer()} |
                          {spawn_opt, [spawn_start_option()]} |
-                         {ticks, [tick_start_option()]}).
+                         {ticks, [tick_id()]}).
 -export_type([start_option/0]).
 
 -type debug_start_option() :: (trace | log | statistics | {log_to_file, FileName :: string()} |
@@ -128,8 +132,8 @@
 -type spawn_start_option() :: term().
 -export_type([spawn_start_option/0]).
 
--type tick_start_option() :: {TickId :: term(), TickDuration :: pos_integer()}.
--export_type([tick_start_option/0]).
+-type tick_id() :: term().
+-export_type([tick_id/0]).
 
 -ifdef(pre18).
 -type timestamp() :: non_neg_integer().
@@ -179,20 +183,20 @@ start_link(Name, Mod, Args, Options) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
--spec init({Mod :: module(), Args :: term(), TickOptions :: [{ticks, tick_start_option()}]})
+-spec init({Mod :: module(), Args :: term(), TickOptions :: [{ticks, [tick_id()]}]})
         -> {ok, State :: term(), Timeout :: non_neg_integer()} |
            {stop, Reason :: term()} | ignore.
 init({Mod, Args, TickOptions}) ->
     NowNS = now_timestamp_ns(),
-    TickSettings = proplists:get_value(ticks, TickOptions, []),
+    TickIds = proplists:get_value(ticks, TickOptions, []),
     Ticks = lists:map(
-              fun ({TickId, TickDurationMS}) ->
+              fun (TickId) ->
                       #tick{id = TickId,
-                            duration_ns = TickDurationMS * 1000000,
                             deadline_ns = NowNS,
-                            generation = 0}
+                            generation = 0,
+                            prev_now_ns = NowNS}
               end,
-              TickSettings),
+              TickIds),
     undefined = put(?PROCDIC_MODULE, Mod),
     undefined = put(?PROCDIC_TICKS, Ticks),
     inject_init_timeout(Mod:init(Args)).
@@ -264,12 +268,18 @@ handle_tick_deadlines(State, [#tick{ deadline_ns=DeadlineNS }=Tick | Untriggered
                       NowNS, Mod, TriggeredTicks)
   when DeadlineNS =< NowNS ->
     #tick{id = Id,
-          duration_ns = DurationNS,
-          generation = Generation}=Tick,
-    {noreply, NewState} = Mod:handle_tick(Id, Generation, State),
-    NewTick = Tick#tick{deadline_ns = DeadlineNS + DurationNS,
-                        generation = Generation + 1},
-    handle_tick_deadlines(NewState, UntriggeredTicks, NowNS, Mod, [NewTick | TriggeredTicks]);
+          generation = Generation,
+          prev_now_ns = PrevNowNS} = Tick,
+    ActualDurationNS = NowNS - PrevNowNS,
+    ActualDurationMS = ActualDurationNS div 1000000,
+    {noreply, NewState} = Mod:handle_tick(Id, Generation, ActualDurationMS, State),
+
+    {NewDurationMS, NewState2} = Mod:tick_duration(Id, NewState),
+    NewDurationNS = NewDurationMS * 1000000,
+    NewTick = Tick#tick{deadline_ns = DeadlineNS + NewDurationNS,
+                        generation = Generation + 1,
+                        prev_now_ns = NowNS},
+    handle_tick_deadlines(NewState2, UntriggeredTicks, NowNS, Mod, [NewTick | TriggeredTicks]);
 handle_tick_deadlines(State, UntriggeredTicks, _NowNS, _Mod, TriggeredTicks) ->
     {State, TriggeredTicks ++ UntriggeredTicks}.
 
@@ -380,7 +390,7 @@ now_timestamp_ns() ->
     erlang:monotonic_time(nano_seconds).
 -endif.
 
--spec split_start_options([start_option()]) -> {[{ticks, tick_start_option()}],
+-spec split_start_options([start_option()]) -> {[{ticks, [tick_id()]}],
                                                 [start_option()]}.
 split_start_options(StartOptions) ->
     lists:partition(fun ({ticks, _Ticks}) -> true;
