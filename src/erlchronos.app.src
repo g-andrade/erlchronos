@@ -1,12 +1,15 @@
 {application, erlchronos,
- [
-  {description, "Erlang/OTP gen_server wrapper with (precise?) ticks."},
+ [{description, "gen_server wrapper with precise ticks"},
   {vsn, git},
   {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
-  %{mod, { erlchronos_app, []}},
-  {env, []}
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, ["Guilherme Andrade"]},
+  {licenses, ["MIT"]},
+  {links, [{"Github", "https://github.com/g-andrade/erlchronos"}]}
  ]}.
