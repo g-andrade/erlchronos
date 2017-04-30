@@ -1,6 +1,8 @@
 % vim: set expandtab softtabstop=2 shiftwidth=4:
 -module(erlchronos_tests).
 
+-ifdef(TEST).
+
 -include_lib("eunit/include/eunit.hrl").
 
 -define(IN_RANGE(X, Y, Range), (abs((X) - (Y)) =< Range)).
@@ -248,3 +250,5 @@ percentile(L, V) ->
             RoundedIndex = TruncatedIndex + 1,
             lists:nth(RoundedIndex, SortedL)
     end.
+
+-endif. % ifdef(TEST)
