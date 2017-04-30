@@ -31,6 +31,7 @@ xref:
 	@$(REBAR3) xref
 
 doc: build
+	./scripts/hackish_inject_version_in_docs.sh
 	./scripts/hackish_make_docs.sh
 
 test:
