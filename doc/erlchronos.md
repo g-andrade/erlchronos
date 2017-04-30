@@ -5,8 +5,6 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-
-
 <a name="types"></a>
 
 ## Data Types ##
@@ -17,11 +15,9 @@
 ### <a name="type-timestamp">timestamp()</a> ###
 
 
-
 <pre><code>
 timestamp() = integer()
 </code></pre>
-
 
 <a name="index"></a>
 
@@ -39,25 +35,17 @@ timestamp() = integer()
 
 ### now_timestamp_ns/0 ###
 
-
 <pre><code>
 now_timestamp_ns() -&gt; <a href="#type-timestamp">timestamp()</a>
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="now_timestamp_ns-0"></a>
 
 ### now_timestamp_ns/0 ###
 
-
 <pre><code>
 now_timestamp_ns() -&gt; <a href="#type-timestamp">timestamp()</a>
 </code></pre>
-
-<br></br>
-
-
+<br />
 

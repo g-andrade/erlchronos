@@ -7,9 +7,7 @@
 
 __Behaviours:__ [`gen_server`](gen_server.md).
 
-__This module defines the `ticked_gen_server` behaviour.__
-<br></br>
- Required callback functions: `init/1`, `tick_duration/2`, `handle_call/3`, `handle_cast/2`, `handle_info/2`, `handle_tick/4`, `terminate/2`, `code_change/3`.
+__This module defines the `ticked_gen_server` behaviour.__<br /> Required callback functions: `init/1`, `tick_duration/2`, `handle_call/3`, `handle_cast/2`, `handle_info/2`, `handle_tick/4`, `terminate/2`, `code_change/3`.
 
 <a name="types"></a>
 
@@ -21,17 +19,14 @@ __This module defines the `ticked_gen_server` behaviour.__
 ### <a name="type-debug_start_option">debug_start_option()</a> ###
 
 
-
 <pre><code>
-debug_start_option() = (trace | log | statistics | {log_to_file, FileName::string()} | {install, {Func::function(), State::term()}})
+debug_start_option() = trace | log | statistics | {log_to_file, FileName::string()} | {install, {Func::function(), State::term()}}
 </code></pre>
 
 
 
 
-
 ### <a name="type-nanoseconds_clock_source">nanoseconds_clock_source()</a> ###
-
 
 
 <pre><code>
@@ -41,9 +36,7 @@ nanoseconds_clock_source() = {Module::module(), Function::atom()}
 
 
 
-
 ### <a name="type-spawn_start_option">spawn_start_option()</a> ###
-
 
 
 <pre><code>
@@ -53,15 +46,12 @@ spawn_start_option() = term()
 
 
 
-
 ### <a name="type-start_option">start_option()</a> ###
 
 
-
 <pre><code>
-start_option() = ({debug, [<a href="#type-debug_start_option">debug_start_option()</a>]} | {timeout, non_neg_integer()} | {spawn_opt, [<a href="#type-spawn_start_option">spawn_start_option()</a>]} | {ticks, [<a href="#type-tick_id">tick_id()</a>]} | {nanoseconds_clock_source, <a href="#type-nanoseconds_clock_source">nanoseconds_clock_source()</a>})
+start_option() = {debug, [<a href="#type-debug_start_option">debug_start_option()</a>]} | {timeout, non_neg_integer()} | {spawn_opt, [<a href="#type-spawn_start_option">spawn_start_option()</a>]} | {ticks, [<a href="#type-tick_id">tick_id()</a>]} | {nanoseconds_clock_source, <a href="#type-nanoseconds_clock_source">nanoseconds_clock_source()</a>}
 </code></pre>
-
 
 
 
@@ -69,11 +59,9 @@ start_option() = ({debug, [<a href="#type-debug_start_option">debug_start_option
 ### <a name="type-tick_id">tick_id()</a> ###
 
 
-
 <pre><code>
 tick_id() = term()
 </code></pre>
-
 
 <a name="index"></a>
 
@@ -91,142 +79,98 @@ tick_id() = term()
 
 ### code_change/3 ###
 
-
 <pre><code>
 code_change(OldVsn::term() | {down, term()}, State::term(), Extra::term()) -&gt; {ok, NewState::term()} | {error, Reason::term()}
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="format_status-2"></a>
 
 ### format_status/2 ###
 
-
 <pre><code>
 format_status(Opt::normal | terminate, StatusData::[(PDict::[{Key::term(), Value::term()}]) | (State::term())]) -&gt; Status::term()
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="handle_call-3"></a>
 
 ### handle_call/3 ###
 
-
 <pre><code>
 handle_call(Request::term(), From::{pid(), Tag::term()}, State::term()) -&gt; {reply, Reply::term(), NewState::term(), Timeout::non_neg_integer()} | {noreply, NewState::term(), Timeout::non_neg_integer()} | {stop, Reason::term(), Reply::term(), NewState::term()} | {stop, Reason::term(), NewState::term()}
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="handle_cast-2"></a>
 
 ### handle_cast/2 ###
 
-
 <pre><code>
 handle_cast(Request::term(), State::term()) -&gt; {noreply, NewState::term(), Timeout::non_neg_integer()} | {stop, Reason::term(), NewState::term()}
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="handle_info-2"></a>
 
 ### handle_info/2 ###
 
-
 <pre><code>
 handle_info(Info::'?GEN_SERVER_TIMEOUT_MSG' | term(), State::term()) -&gt; {noreply, NewState::term(), Timeout::non_neg_integer()} | {stop, Reason::term(), NewState::term()}
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="init-1"></a>
 
 ### init/1 ###
 
-
 <pre><code>
 init(X1::{Mod::module(), Args::term(), TickOptions::[{ticks, [<a href="#type-tick_id">tick_id()</a>]} | {nanoseconds_clock_source, <a href="#type-nanoseconds_clock_source">nanoseconds_clock_source()</a>}]}) -&gt; {ok, State::term(), Timeout::non_neg_integer()} | {stop, Reason::term()} | ignore
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="start-3"></a>
 
 ### start/3 ###
 
-
 <pre><code>
 start(Mod::module(), Args::term(), Options::[<a href="#type-start_option">start_option()</a>]) -&gt; {ok, pid()} | {error, {already_started, pid()}} | {error, Reason::term()}
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="start-4"></a>
 
 ### start/4 ###
 
-
 <pre><code>
 start(Name::{local, atom()} | {global, atom()} | {via, atom(), term()}, Mod::module(), Args::term(), Options::[<a href="#type-start_option">start_option()</a>]) -&gt; {ok, pid()} | {error, {already_started, pid()}} | {error, Reason::term()}
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="start_link-3"></a>
 
 ### start_link/3 ###
 
-
 <pre><code>
 start_link(Mod::module(), Args::term(), Options::[<a href="#type-start_option">start_option()</a>]) -&gt; {ok, pid()} | {error, {already_started, pid()}} | {error, Reason::term()}
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="start_link-4"></a>
 
 ### start_link/4 ###
 
-
 <pre><code>
 start_link(Name::{local, atom()} | {global, atom()} | {via, atom(), term()}, Mod::module(), Args::term(), Options::[<a href="#type-start_option">start_option()</a>]) -&gt; {ok, pid()} | {error, {already_started, pid()}} | {error, Reason::term()}
 </code></pre>
-
-<br></br>
-
-
+<br />
 
 <a name="terminate-2"></a>
 
 ### terminate/2 ###
 
-
 <pre><code>
 terminate(Reason::normal | shutdon | {shutdown, term()} | term, State::term()) -&gt; term()
 </code></pre>
-
-<br></br>
-
-
+<br />
 

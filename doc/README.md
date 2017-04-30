@@ -9,11 +9,11 @@ __Version:__ 2.0.0
 __Authors:__ Guilherme Andrade ([`erlchronos(at)gandrade(dot)net`](mailto:erlchronos(at)gandrade(dot)net)).
 
 `erlchronos`: Erlang/OTP gen_server wrapper with ticks
+
 ---------
 
 
 ### <a name="What_is_it?">What is it?</a> ###
-
 
 `erlchronos` provides a [`gen_server`](http://erlang.org/doc/man/gen_server.md) wrapper, `ticked_gen_server`,
 that allows one to more easily manage triggering and dealing with ticks at regular intervals by specifying two new callbacks,
@@ -28,7 +28,6 @@ on two key mechanisms for tick enforcement:
 
 ### <a name="Why?">Why?</a> ###
 
-
 The traditional approach of having a message sent to a `gen_server`'s inbox at regular intervals isn't always
 the more appropriate, and might misbehave significantly every time the system is subjected to message bursts (among other factors), even when actively accounting for drift, due to the strictly-ordered nature of inbox consumption.
 
@@ -39,14 +38,12 @@ This compromise solution tries not to fiddle too much with, nor reinvent the exi
 
 ### <a name="Pros">Pros</a> ###
 
-
 * Ticks should be more precise, save for enormously flooded inboxes (whose processes never behave properly, in any case;)
 * For overload scenarios, the `tick_duration/2` callback can be used to easily lower tick rate;
 * Ticking logic is abstracted away.
 
 
 ### <a name="Cons">Cons</a> ###
-
 
 * Slight execution overhead;
 * Losing the ability of specify timeouts on `init` / `handle_call` / `handle_cast` / `handle_info` return values;
@@ -86,7 +83,6 @@ Basic example under examples/.
 
 
 ### <a name="Which_problems_doesn't_it_solve?">Which problems doesn't it solve?</a> ###
-
 
 * When a gen_server receives events whose handling time equals to a big enough fraction of the tick duration, it risks provoking unacceptable jitter;
 * When a gen_server's exection is blocked, incoming ticks risk being triggered in a burst fashion later on, but ignoring them is easy enough to do if such is a requirement.
